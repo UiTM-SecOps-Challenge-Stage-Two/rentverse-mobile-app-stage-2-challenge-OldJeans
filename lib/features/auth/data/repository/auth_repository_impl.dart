@@ -12,7 +12,6 @@ import '../models/request/login_request_model.dart';
 import '../models/request/register_request_model.dart';
 import '../source/auth_api_service.dart';
 
-
 class AuthRepositoryImpl implements AuthRepository {
   final AuthApiService _apiService;
   final AuthLocalDataSource _localDataSource;
@@ -115,5 +114,11 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<bool> isLoggedIn() async {
     // Cek ke local data source apakah token/user ada
     return _localDataSource.isLoggedIn();
+  }
+
+  @override
+  Future<UserEntity?> getLastLocalUser() async {
+    return _localDataSource
+        .getLastUser(); // Panggil local data source yg kita buat tadi
   }
 }
