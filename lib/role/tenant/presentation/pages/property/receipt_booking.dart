@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:rentverse/core/services/service_locator.dart';
 import 'package:rentverse/features/bookings/domain/entity/res/booking_response_entity.dart';
 import 'package:rentverse/role/tenant/presentation/cubit/receipt_booking/cubit.dart';
 import 'package:rentverse/role/tenant/presentation/cubit/receipt_booking/state.dart';
+import 'package:rentverse/role/tenant/presentation/pages/property/midtrans_payment_page.dart';
 
 class ReceiptBookingPage extends StatelessWidget {
   const ReceiptBookingPage({super.key, required this.response});
@@ -12,10 +14,26 @@ class ReceiptBookingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ReceiptBookingCubit(response),
+      create: (_) => ReceiptBookingCubit(sl(), response),
       child: Scaffold(
         appBar: AppBar(title: const Text('Receipt Booking'), centerTitle: true),
-        body: BlocBuilder<ReceiptBookingCubit, ReceiptBookingState>(
+        body: BlocConsumer<ReceiptBookingCubit, ReceiptBookingState>(
+          listener: (context, state) {
+            if (state.error != null) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.error!)));
+            }
+            if (state.payment != null) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => MidtransPaymentPage(
+                    redirectUrl: state.payment!.redirectUrl,
+                  ),
+                ),
+              );
+            }
+          },
           builder: (context, state) {
             final res = state.response;
             return Padding(
@@ -61,6 +79,20 @@ class ReceiptBookingPage extends StatelessWidget {
                       _Row(
                         label: 'Primary Image',
                         value: res.property!.imageUrl,
+                      ),
+                    ],
+                    if (state.payment != null) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Payment Token',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(state.payment!.token),
+                      const SizedBox(height: 6),
+                      _Row(
+                        label: 'Redirect URL',
+                        value: state.payment!.redirectUrl,
                       ),
                     ],
                   ],
@@ -117,12 +149,20 @@ class ReceiptBookingPage extends StatelessWidget {
                           ),
                         ),
                         ElevatedButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Pay Now tapped')),
-                            );
-                          },
-                          child: const Text('Pay Now'),
+                          onPressed: state.isPaying
+                              ? null
+                              : () => context
+                                    .read<ReceiptBookingCubit>()
+                                    .payNow(),
+                          child: state.isPaying
+                              ? const SizedBox(
+                                  height: 16,
+                                  width: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('Pay Now'),
                         ),
                       ],
                     ),

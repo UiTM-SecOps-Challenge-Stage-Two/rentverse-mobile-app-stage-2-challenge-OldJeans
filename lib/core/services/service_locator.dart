@@ -29,6 +29,10 @@ import 'package:rentverse/features/kyc/data/repository/kyc_repository_impl.dart'
 import 'package:rentverse/features/kyc/data/source/kyc_api_service.dart';
 import 'package:rentverse/features/kyc/domain/repository/kyc_repository.dart';
 import 'package:rentverse/features/kyc/domain/usecase/submit_kyc_usecase.dart';
+import 'package:rentverse/features/midtrans/data/repository/midtrans_repository_impl.dart';
+import 'package:rentverse/features/midtrans/data/source/midtrans_api_service.dart';
+import 'package:rentverse/features/midtrans/domain/repository/midtrans_repository.dart';
+import 'package:rentverse/features/midtrans/domain/usecase/pay_invoice_usecase.dart';
 import 'package:rentverse/features/rental/data/repository/rental_repository_impl.dart';
 import 'package:rentverse/features/rental/data/source/rental_api_service.dart';
 import 'package:rentverse/features/rental/domain/repository/rental_repository.dart';
@@ -109,6 +113,12 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<WalletRepository>(
     () => WalletRepositoryImpl(sl<WalletApiService>()),
   );
+  sl.registerLazySingleton<MidtransApiService>(
+    () => MidtransApiServiceImpl(sl<DioClient>()),
+  );
+  sl.registerLazySingleton<MidtransRepository>(
+    () => MidtransRepositoryImpl(sl<MidtransApiService>()),
+  );
 
   // Auth usecases
   sl.registerLazySingleton(() => GetLocalUserUseCase(sl<AuthRepository>()));
@@ -134,6 +144,7 @@ Future<void> setupServiceLocator() async {
     () => GetRentReferencesUseCase(sl<RentalRepository>()),
   );
   sl.registerLazySingleton(() => GetWalletUseCase(sl<WalletRepository>()));
+  sl.registerLazySingleton(() => PayInvoiceUseCase(sl<MidtransRepository>()));
 
   // cubits
   sl.registerLazySingleton(() => AuthCubit());
