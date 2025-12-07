@@ -69,6 +69,67 @@ class ReceiptBookingPage extends StatelessWidget {
             );
           },
         ),
+        bottomNavigationBar:
+            BlocBuilder<ReceiptBookingCubit, ReceiptBookingState>(
+              builder: (context, state) {
+                final res = state.response;
+                final amountLabel = '${res.amount} ${res.currency}'.trim();
+                return SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 6,
+                          offset: Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'Total Price',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                amountLabel,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Pay Now tapped')),
+                            );
+                          },
+                          child: const Text('Pay Now'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
       ),
     );
   }
