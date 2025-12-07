@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:rentverse/core/services/service_locator.dart';
+import 'package:rentverse/features/auth/presentation/widget/custom_text_field.dart';
 import 'package:rentverse/features/property/domain/entity/list_property_entity.dart';
+import 'package:rentverse/features/rental/domain/entity/rent_references_entity_response.dart';
 import 'package:rentverse/role/tenant/presentation/cubit/booking/cubit.dart';
 import 'package:rentverse/role/tenant/presentation/cubit/booking/state.dart';
+import 'package:rentverse/role/tenant/presentation/cubit/get_user/cubit.dart';
+import 'package:rentverse/role/tenant/presentation/cubit/get_user/state.dart';
 
 class BookingPropertyPage extends StatelessWidget {
   const BookingPropertyPage({super.key, required this.property});
@@ -12,10 +17,20 @@ class BookingPropertyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => BookingCubit(sl(), sl())..loadBillingPeriods(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => BookingCubit(sl(), sl())..loadBillingPeriods(),
+        ),
+        BlocProvider(create: (_) => GetUserCubit(sl())..load()),
+      ],
       child: Scaffold(
-        appBar: AppBar(title: const Text('Booking'), centerTitle: true),
+        appBar: AppBar(
+          title: const Text('Rental Agreement Form'),
+          centerTitle: true,
+          backgroundColor: Colors.white,
+          elevation: 0,
+        ),
         body: SafeArea(
           child: BlocConsumer<BookingCubit, BookingState>(
             listener: (context, state) {
@@ -34,177 +49,272 @@ class BookingPropertyPage extends StatelessWidget {
             },
             builder: (context, state) {
               final cubit = context.read<BookingCubit>();
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _Card(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            property.title,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '${property.city}, ${property.country}',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Rp${property.price}',
-                            style: const TextStyle(
-                              color: Colors.teal,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
+              final selectedPeriod = state.billingPeriods.firstWhere(
+                (p) => p.id == state.billingPeriodId,
+                orElse: () => state.billingPeriods.isNotEmpty
+                    ? state.billingPeriods.first
+                    : BillingPeriodEntity(
+                        id: 0,
+                        slug: '',
+                        label: 'Durasi belum tersedia',
+                        durationMonths: 0,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    _Card(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Billing Period',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+              );
+
+              final durationLabel = state.billingPeriods.isEmpty
+                  ? 'Durasi belum tersedia'
+                  : '${selectedPeriod.label} (${selectedPeriod.durationMonths} bln)';
+
+              final priceLabel = _formatCurrency(property.price);
+              final propertyTypeLabel =
+                  property.propertyType?.label ?? 'Apartment';
+
+              return BlocBuilder<GetUserCubit, GetUserState>(
+                builder: (context, userState) {
+                  final tenantName = userState.user?.name ?? '';
+                  final tenantEmail = userState.user?.email ?? '';
+                  final tenantPhone = userState.user?.phone ?? '';
+
+                  final meta = property.metadata ?? {};
+                  final ownerName =
+                      (meta['landlordName'] ?? meta['ownerName'] ?? '')
+                          .toString();
+                  final ownerEmail =
+                      (meta['landlordEmail'] ?? meta['ownerEmail'] ?? '')
+                          .toString();
+                  final ownerPhone =
+                      (meta['landlordPhone'] ?? meta['ownerPhone'] ?? '')
+                          .toString();
+                  final ownerAddress = '${property.city}, ${property.country}';
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SectionTitle('Tenant Details'),
+                        const SizedBox(height: 8),
+                        _LabeledField(
+                          label: 'Fullname',
+                          child: CustomTextField(
+                            hintText: tenantName.isEmpty
+                                ? 'Masukan nama lengkap anda'
+                                : tenantName,
+                            prefixIcon: const Icon(Icons.person_outline),
+                            readOnly: true,
                           ),
-                          const SizedBox(height: 8),
-                          if (state.isBillingPeriodsLoading)
-                            const Center(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(vertical: 8),
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
+                        ),
+                        const SizedBox(height: 12),
+                        _LabeledField(
+                          label: 'Email',
+                          child: CustomTextField(
+                            hintText: tenantEmail.isEmpty
+                                ? 'Masukan email anda'
+                                : tenantEmail,
+                            keyboardType: TextInputType.emailAddress,
+                            prefixIcon: const Icon(Icons.email_outlined),
+                            readOnly: true,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _LabeledField(
+                          label: 'Current Address',
+                          child: const CustomTextField(
+                            hintText: 'Masukan nama lengkap anda',
+                            prefixIcon: Icon(Icons.home_outlined),
+                            readOnly: true,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _LabeledField(
+                          label: 'Phone Number',
+                          child: CustomTextField(
+                            hintText: tenantPhone.isEmpty
+                                ? 'Masukan nama lengkap anda'
+                                : tenantPhone,
+                            keyboardType: TextInputType.phone,
+                            prefixIcon: const Icon(Icons.phone_outlined),
+                            readOnly: true,
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+                        _SectionTitle('Owner Details ( Auto-filled )'),
+                        const SizedBox(height: 8),
+                        _LabeledField(
+                          label: 'Fullname',
+                          child: CustomTextField(
+                            hintText: ownerName.isEmpty
+                                ? 'Masukan nama lengkap anda'
+                                : ownerName,
+                            prefixIcon: const Icon(Icons.person_outline),
+                            readOnly: true,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _LabeledField(
+                          label: 'Email',
+                          child: CustomTextField(
+                            hintText: ownerEmail.isEmpty
+                                ? 'Masukan nama lengkap anda'
+                                : ownerEmail,
+                            prefixIcon: const Icon(Icons.email_outlined),
+                            readOnly: true,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _LabeledField(
+                          label: 'Current Address',
+                          child: CustomTextField(
+                            hintText: ownerAddress,
+                            prefixIcon: const Icon(Icons.home_outlined),
+                            readOnly: true,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _LabeledField(
+                          label: 'Phone Number',
+                          child: CustomTextField(
+                            hintText: ownerPhone.isEmpty
+                                ? 'Masukan nama lengkap anda'
+                                : ownerPhone,
+                            keyboardType: TextInputType.phone,
+                            prefixIcon: const Icon(Icons.phone_outlined),
+                            readOnly: true,
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+                        _SectionTitle(
+                          'Property & Rent Details ( Auto-filled )',
+                        ),
+                        const SizedBox(height: 8),
+                        _LabeledField(
+                          label: 'Property Address',
+                          child: CustomTextField(
+                            hintText: property.address.isEmpty
+                                ? 'Masukan nama lengkap anda'
+                                : property.address,
+                            prefixIcon: const Icon(Icons.location_on_outlined),
+                            readOnly: true,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _LabeledField(
+                          label: 'Start Address',
+                          child: CustomTextField(
+                            hintText: _formatDate(state.startDate),
+                            readOnly: true,
+                            onTap: () async {
+                              final now = DateTime.now();
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: state.startDate.isAfter(now)
+                                    ? state.startDate
+                                    : now,
+                                firstDate: now,
+                                lastDate: DateTime(now.year + 3),
+                              );
+                              if (picked != null) {
+                                cubit.setStartDate(picked);
+                              }
+                            },
+                            suffixIcon: const Icon(
+                              Icons.calendar_today_outlined,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _LabeledField(
+                          label: 'Duration (Days)',
+                          child: CustomTextField(
+                            hintText: durationLabel,
+                            readOnly: true,
+                            suffixIcon: const Icon(Icons.arrow_drop_down),
+                            onTap: () =>
+                                _showBillingPeriodPicker(context, state, cubit),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _LabeledField(
+                          label: 'Monthly Rent Price',
+                          child: CustomTextField(
+                            hintText: priceLabel,
+                            readOnly: true,
+                            prefixIcon: const Icon(Icons.payments_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _LabeledField(
+                          label: 'Property Type',
+                          child: CustomTextField(
+                            hintText: propertyTypeLabel,
+                            readOnly: true,
+                            prefixIcon: const Icon(Icons.apartment_outlined),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed:
+                                state.isLoading ||
+                                    state.isBillingPeriodsLoading ||
+                                    state.billingPeriods.isEmpty
+                                ? null
+                                : () async {
+                                    await cubit.submit(property.id);
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor: Colors.teal,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            )
-                          else if (state.billingPeriods.isEmpty)
-                            const Text('Billing period belum tersedia')
-                          else
-                            Wrap(
-                              spacing: 8,
-                              children: state.billingPeriods
-                                  .map(
-                                    (period) => _PeriodChip(
-                                      label:
-                                          '${period.label} (${period.durationMonths} bln)',
-                                      selected:
-                                          state.billingPeriodId == period.id,
-                                      onTap: () =>
-                                          cubit.setBillingPeriod(period.id),
+                            ),
+                            child: state.isLoading
+                                ? const SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation(
+                                        Colors.white,
+                                      ),
                                     ),
                                   )
-                                  .toList(),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _Card(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Start Date',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _formatDate(state.startDate),
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              TextButton(
-                                onPressed: () async {
-                                  final now = DateTime.now();
-                                  final picked = await showDatePicker(
-                                    context: context,
-                                    initialDate: state.startDate.isAfter(now)
-                                        ? state.startDate
-                                        : now,
-                                    firstDate: now,
-                                    lastDate: DateTime(now.year + 3),
-                                  );
-                                  if (picked != null) {
-                                    cubit.setStartDate(picked);
-                                  }
-                                },
-                                child: const Text('Pilih tanggal'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed:
-                            state.isLoading ||
-                                state.isBillingPeriodsLoading ||
-                                state.billingPeriods.isEmpty
-                            ? null
-                            : () async {
-                                await cubit.submit(property.id);
-                              },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          backgroundColor: Colors.teal,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: state.isLoading
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(
-                                    Colors.white,
+                                : const Text(
+                                    'Kirim Booking',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
-                                ),
-                              )
-                            : const Text(
-                                'Kirim Booking',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (state.result != null)
-                      _Card(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Booking Created',
-                              style: TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 6),
-                            Text('Booking ID: ${state.result!.bookingId}'),
-                            Text('Invoice ID: ${state.result!.invoiceId}'),
-                            Text('Status: ${state.result!.status}'),
-                            Text('Amount: Rp${state.result!.amount}'),
-                          ],
+                          ),
                         ),
-                      ),
-                  ],
-                ),
+                        const SizedBox(height: 12),
+                        if (state.result != null)
+                          _Card(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Booking Created',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 6),
+                                Text('Booking ID: ${state.result!.bookingId}'),
+                                Text('Invoice ID: ${state.result!.invoiceId}'),
+                                Text('Status: ${state.result!.status}'),
+                                Text('Amount: Rp${state.result!.amount}'),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -219,6 +329,97 @@ class BookingPropertyPage extends StatelessWidget {
     final d = date.day.toString().padLeft(2, '0');
     return '$y-$m-$d';
   }
+
+  static String _formatCurrency(String rawPrice) {
+    final value = int.tryParse(rawPrice) ?? 0;
+    final formatter = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+    return formatter.format(value);
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+    );
+  }
+}
+
+class _LabeledField extends StatelessWidget {
+  const _LabeledField({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        const SizedBox(height: 6),
+        child,
+      ],
+    );
+  }
+}
+
+Future<void> _showBillingPeriodPicker(
+  BuildContext context,
+  BookingState state,
+  BookingCubit cubit,
+) async {
+  if (state.billingPeriods.isEmpty || state.isBillingPeriodsLoading) return;
+
+  await showModalBottomSheet<void>(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (ctx) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Pilih Billing Period',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              ...state.billingPeriods.map(
+                (p) => ListTile(
+                  title: Text('${p.label} (${p.durationMonths} bln)'),
+                  trailing: state.billingPeriodId == p.id
+                      ? const Icon(Icons.check, color: Colors.teal)
+                      : null,
+                  onTap: () {
+                    cubit.setBillingPeriod(p.id);
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _Card extends StatelessWidget {
@@ -239,36 +440,6 @@ class _Card extends StatelessWidget {
         ],
       ),
       child: child,
-    );
-  }
-}
-
-class _PeriodChip extends StatelessWidget {
-  const _PeriodChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onTap(),
-      selectedColor: Colors.teal.withOpacity(0.2),
-      labelStyle: TextStyle(
-        color: selected ? Colors.teal.shade800 : Colors.black87,
-        fontWeight: FontWeight.w600,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: selected ? Colors.teal : Colors.grey.shade300),
-      ),
     );
   }
 }
