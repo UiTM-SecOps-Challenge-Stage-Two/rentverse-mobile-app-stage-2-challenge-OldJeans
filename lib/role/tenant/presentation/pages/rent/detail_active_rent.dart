@@ -50,6 +50,29 @@ class _ActiveRentDetailView extends StatelessWidget {
         ),
         centerTitle: true,
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 2,
+        selectedItemColor: const Color(0xFF1CD8D2),
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          if (index == 2) return;
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.apartment),
+            label: 'Property',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long),
+            label: 'Rent',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
       body: BlocBuilder<ActiveRentDetailCubit, ActiveRentDetailState>(
         builder: (context, state) {
           if (state.isLoading) {
