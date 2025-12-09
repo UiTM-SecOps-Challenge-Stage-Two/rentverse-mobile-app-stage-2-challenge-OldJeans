@@ -28,7 +28,8 @@ class ChatMessageModel {
       senderId:
           (data['senderId'] ?? data['sender_id'] ?? data['sender']?['id'] ?? '')
               .toString(),
-      content: (data['content'] ?? data['message'] ?? '').toString(),
+      content: (data['content'] ?? data['message'] ?? data['body'] ?? '')
+          .toString(),
       isRead: data['isRead'] == true || data['is_read'] == true,
       createdAt: _parseDate(data['createdAt'] ?? data['created_at']),
     );

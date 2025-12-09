@@ -26,9 +26,12 @@ class ChatRoomPage extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (_) =>
-              ChatRoomCubit(sl(), sl(), currentUserId: currentUserId)
-                ..init(roomId),
+          create: (_) => ChatRoomCubit(
+            sl(),
+            sl(),
+            notificationService: sl(),
+            currentUserId: currentUserId,
+          )..init(roomId),
         ),
         BlocProvider(create: (_) => ChatRoomViewCubit()),
       ],

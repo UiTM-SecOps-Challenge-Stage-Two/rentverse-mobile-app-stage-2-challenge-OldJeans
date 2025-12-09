@@ -5,6 +5,9 @@ import 'package:rentverse/common/bloc/auth/auth_cubit.dart';
 import 'package:rentverse/common/bloc/auth/auth_state.dart';
 import 'package:rentverse/common/colors/custom_color.dart';
 import 'package:rentverse/core/services/service_locator.dart';
+import 'package:rentverse/features/chat/domain/usecase/get_conversations_usecase.dart';
+import 'package:rentverse/features/chat/data/source/chat_socket_service.dart';
+import 'package:rentverse/core/services/notification_service.dart';
 import 'package:rentverse/features/chat/domain/entity/chat_conversation_entity.dart';
 import 'package:rentverse/features/chat/presentation/cubit/conversation_list/conversation_list_cubit.dart';
 import 'package:rentverse/features/chat/presentation/cubit/conversation_list/conversation_list_state.dart';
@@ -34,7 +37,11 @@ class _ChatListPageState extends State<ChatListPage> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => ConversationListCubit(sl())..load(),
+      create: (_) => ConversationListCubit(
+        sl<GetConversationsUseCase>(),
+        sl<ChatSocketService>(),
+        sl<NotificationService>(),
+      )..load(),
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.isLandlord ? 'Chat (Landlord)' : 'Chat'),

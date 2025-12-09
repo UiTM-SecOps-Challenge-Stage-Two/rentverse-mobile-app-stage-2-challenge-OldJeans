@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
@@ -28,6 +29,11 @@ class NotificationService {
   final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+  final StreamController<Map<String, dynamic>> _chatMessageController =
+      StreamController.broadcast();
+
+  Stream<Map<String, dynamic>> get chatMessageStream =>
+      _chatMessageController.stream;
 
   static const AndroidNotificationChannel _androidChannel =
       AndroidNotificationChannel(
@@ -130,6 +136,24 @@ class NotificationService {
       _logger.i(
         'Foreground message received: title="$title" body="$body" data=${message.data}',
       );
+
+      // Pipe chat messages to listeners so UI can update without manual refresh
+      final type = message.data['type']?.toString().toUpperCase();
+      if (type == 'CHAT_MESSAGE') {
+        final enriched = Map<String, dynamic>.from(message.data);
+        // Ensure content/body is present for UI rendering
+        if ((enriched['content'] ?? '').toString().isEmpty) {
+          enriched['content'] = body ?? enriched['body'] ?? '';
+        }
+        // Provide createdAt if missing
+        enriched['createdAt'] ??= (message.sentTime ?? DateTime.now())
+            .toIso8601String();
+        // Provide id fallback
+        enriched['id'] ??=
+            message.messageId ??
+            DateTime.now().microsecondsSinceEpoch.toString();
+        _chatMessageController.add(enriched);
+      }
 
       // Fallback to data payload if notification block is missing (data-only messages).
       final resolvedTitle = title ?? message.data['title'] as String?;
