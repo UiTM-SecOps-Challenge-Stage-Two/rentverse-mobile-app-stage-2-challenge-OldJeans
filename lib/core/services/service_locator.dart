@@ -62,6 +62,11 @@ import 'package:rentverse/features/chat/domain/usecase/get_conversations_usecase
 import 'package:rentverse/features/chat/domain/usecase/get_messages_usecase.dart';
 import 'package:rentverse/features/chat/domain/usecase/send_message_usecase.dart';
 import 'package:rentverse/features/chat/domain/usecase/start_chat_usecase.dart';
+import 'package:rentverse/features/review/data/source/review_api_service.dart';
+import 'package:rentverse/features/review/data/repository/review_repository_impl.dart';
+import 'package:rentverse/features/review/domain/repository/review_repository.dart';
+import 'package:rentverse/features/review/domain/usecase/submit_review_usecase.dart';
+import 'package:rentverse/features/review/domain/usecase/get_property_reviews_usecase.dart';
 import 'package:rentverse/core/network/open_map_street_api.dart';
 import 'package:rentverse/role/lanlord/data/source/landlord_dashboard_api_service.dart';
 import 'package:rentverse/role/lanlord/data/repository/landlord_dashboard_repository_impl.dart';
@@ -88,6 +93,18 @@ Future<void> setupServiceLocator() async {
   );
   sl.registerLazySingleton<ChatSocketService>(
     () => ChatSocketService(sl<Logger>(), sl()),
+  );
+
+  // Reviews
+  sl.registerLazySingleton<ReviewApiService>(
+    () => ReviewApiServiceImpl(sl<DioClient>()),
+  );
+  sl.registerLazySingleton<ReviewRepository>(
+    () => ReviewRepositoryImpl(sl<ReviewApiService>()),
+  );
+  sl.registerLazySingleton(() => SubmitReviewUseCase(sl<ReviewRepository>()));
+  sl.registerLazySingleton(
+    () => GetPropertyReviewsUseCase(sl<ReviewRepository>()),
   );
 
   // Auth data sources & services

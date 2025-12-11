@@ -7,6 +7,8 @@ import 'package:rentverse/features/bookings/domain/entity/res/booking_list_entit
 import 'package:rentverse/features/bookings/domain/usecase/get_bookings_usecase.dart';
 import 'package:rentverse/features/bookings/domain/entity/res/booking_response_entity.dart';
 import 'package:rentverse/features/midtrans/domain/usecase/pay_invoice_usecase.dart';
+import 'package:rentverse/features/review/domain/usecase/submit_review_usecase.dart';
+import 'package:rentverse/core/resources/data_state.dart';
 import 'package:rentverse/role/tenant/presentation/pages/rent/midtrans_payment_page.dart';
 import 'package:rentverse/role/tenant/presentation/pages/rent/detail_active_rent.dart';
 import 'package:rentverse/role/tenant/presentation/cubit/rent/cubit.dart';
@@ -41,6 +43,99 @@ class _TenantRentPageState extends State<TenantRentPage> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => ActiveRentDetailPage(booking: item)),
     );
+  }
+
+  Future<void> _openReviewDialog(
+    BuildContext context,
+    BookingListItemEntity item,
+  ) async {
+    final ratingCtrl = ValueNotifier<int>(5);
+    final commentController = TextEditingController();
+
+    await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Submit Review'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ValueListenableBuilder<int>(
+              valueListenable: ratingCtrl,
+              builder: (_, value, __) => Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (i) {
+                  final idx = i + 1;
+                  return IconButton(
+                    icon: Icon(
+                      idx <= value ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                    ),
+                    onPressed: () => ratingCtrl.value = idx,
+                  );
+                }),
+              ),
+            ),
+            TextField(
+              controller: commentController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'Add a comment (optional)',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final rating = ratingCtrl.value;
+              final comment = commentController.text.trim();
+              Navigator.of(context).pop(true);
+
+              // call submit usecase
+              try {
+                final usecase = sl<SubmitReviewUseCase>();
+                final params = SubmitReviewParams(
+                  bookingId: item.id,
+                  rating: rating,
+                  comment: comment.isEmpty ? null : comment,
+                );
+                final result = await usecase.call(param: params);
+                if (result is DataSuccess<void>) {
+                  if (context.mounted)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Review submitted successfully'),
+                      ),
+                    );
+                } else if (result is DataFailed) {
+                  if (context.mounted)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Failed to submit review: ${result.error}',
+                        ),
+                      ),
+                    );
+                }
+              } catch (e) {
+                if (context.mounted)
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+    ratingCtrl.dispose();
+    commentController.dispose();
+    return;
   }
 
   @override
@@ -206,8 +301,8 @@ class _TenantRentPageState extends State<TenantRentPage> {
                   _BookingList(
                     statusLabel: 'Completed',
                     items: _sorted(bookingCompleted),
-                    buttonLabel: 'View Detail',
-                    onTap: (item) => _openActiveDetail(context, item),
+                    buttonLabel: 'Review',
+                    onTap: (item) => _openReviewDialog(context, item),
                   ),
 
                   // Overdue

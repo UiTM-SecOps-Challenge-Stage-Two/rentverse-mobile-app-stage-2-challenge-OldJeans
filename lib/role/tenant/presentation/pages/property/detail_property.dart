@@ -17,6 +17,7 @@ import 'package:rentverse/role/tenant/presentation/widget/detail_property/access
 import 'package:rentverse/role/tenant/presentation/widget/detail_property/image_tile.dart';
 import 'package:rentverse/role/tenant/presentation/widget/detail_property/owner_contact.dart';
 import 'package:rentverse/role/tenant/presentation/widget/detail_property/booking_button.dart';
+import 'package:rentverse/features/review/presentation/widget/property_reviews_widget.dart';
 import 'package:rentverse/role/tenant/presentation/pages/property/booking_property.dart';
 import 'package:rentverse/role/tenant/presentation/cubit/detail_property/cubit.dart';
 import 'package:rentverse/role/tenant/presentation/cubit/detail_property/state.dart';
@@ -114,6 +115,10 @@ class DetailProperty extends StatelessWidget {
                               ),
                               const SizedBox(height: 8),
                               _LocationMap(property: currentProperty),
+                              const SizedBox(height: 12),
+                              PropertyReviewsWidget(
+                                propertyId: currentProperty.id,
+                              ),
                             ],
                           ),
                         ),
