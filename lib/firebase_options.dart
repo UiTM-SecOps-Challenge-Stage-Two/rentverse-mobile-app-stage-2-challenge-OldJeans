@@ -83,4 +83,5 @@ class DefaultFirebaseOptions {
     authDomain: 'imperial-signer-453516-t3.firebaseapp.com',
     storageBucket: 'imperial-signer-453516-t3.firebasestorage.app',
   );
+
 }
