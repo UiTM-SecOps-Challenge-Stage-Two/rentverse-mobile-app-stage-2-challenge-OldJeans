@@ -9,6 +9,7 @@ import 'package:rentverse/role/tenant/presentation/widget/home/city_carousel.dar
 import 'package:rentverse/role/tenant/presentation/widget/property/list_property.dart';
 import 'package:rentverse/role/tenant/presentation/widget/home/search_and_sort_widget.dart';
 import 'package:rentverse/features/property/domain/usecase/get_properties_usecase.dart';
+import 'package:rentverse/features/notification/presentation/pages/notification_page.dart';
 
 import '../../widget/home/carousel_custom.dart';
 
@@ -30,7 +31,16 @@ class TenantHomePage extends StatelessWidget {
                 final displayName = state.user?.name?.isNotEmpty == true
                     ? state.user!.name!
                     : 'User';
-                return CustomAppBar(displayName: displayName);
+                return CustomAppBar(
+                  displayName: displayName,
+                  onNotificationTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationPage(),
+                      ),
+                    );
+                  },
+                );
               },
             ),
           ),

@@ -8,6 +8,7 @@ import 'package:rentverse/role/tenant/presentation/cubit/get_user/state.dart';
 import 'package:rentverse/role/tenant/presentation/cubit/list_property/cubit.dart';
 import 'package:rentverse/role/tenant/presentation/widget/property/list_property.dart';
 import 'package:rentverse/role/tenant/presentation/widget/property/search_and_sort_widget_in_property.dart';
+import 'package:rentverse/features/notification/presentation/pages/notification_page.dart';
 
 class TenantPropertyPage extends StatelessWidget {
   const TenantPropertyPage({super.key});
@@ -27,7 +28,16 @@ class TenantPropertyPage extends StatelessWidget {
                 final displayName = state.user?.name?.isNotEmpty == true
                     ? state.user!.name!
                     : 'User';
-                return CustomAppBar(displayName: displayName);
+                return CustomAppBar(
+                  displayName: displayName,
+                  onNotificationTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationPage(),
+                      ),
+                    );
+                  },
+                );
               },
             ),
           ),

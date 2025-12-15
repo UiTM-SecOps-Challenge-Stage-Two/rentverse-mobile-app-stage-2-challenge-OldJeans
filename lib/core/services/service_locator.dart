@@ -39,6 +39,11 @@ import 'package:rentverse/features/midtrans/data/repository/midtrans_repository_
 import 'package:rentverse/features/midtrans/data/source/midtrans_api_service.dart';
 import 'package:rentverse/features/midtrans/domain/repository/midtrans_repository.dart';
 import 'package:rentverse/features/midtrans/domain/usecase/pay_invoice_usecase.dart';
+import 'package:rentverse/features/notification/data/repository/notification_repository_impl.dart';
+import 'package:rentverse/features/notification/data/source/notification_api_service.dart';
+import 'package:rentverse/features/notification/domain/repository/notification_repository.dart';
+import 'package:rentverse/features/notification/domain/usecase/get_notifications_usecase.dart';
+import 'package:rentverse/features/notification/domain/usecase/mark_notification_read_usecase.dart';
 import 'package:rentverse/features/rental/data/repository/rental_repository_impl.dart';
 import 'package:rentverse/features/rental/data/source/rental_api_service.dart';
 import 'package:rentverse/features/rental/domain/repository/rental_repository.dart';
@@ -91,6 +96,18 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<NotificationService>(
     () =>
         NotificationService(dio: sl<Dio>(), prefs: sl(), logger: sl<Logger>()),
+  );
+  sl.registerLazySingleton<NotificationApiService>(
+    () => NotificationApiServiceImpl(sl<DioClient>()),
+  );
+  sl.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(sl<NotificationApiService>()),
+  );
+  sl.registerLazySingleton(
+    () => GetNotificationsUseCase(sl<NotificationRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => MarkNotificationReadUseCase(sl<NotificationRepository>()),
   );
   sl.registerLazySingleton<ChatSocketService>(
     () => ChatSocketService(sl<Logger>(), sl()),

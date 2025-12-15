@@ -17,6 +17,7 @@ import 'package:rentverse/common/utils/network_utils.dart';
 import 'package:rentverse/common/widget/pull_to_refresh.dart';
 import 'package:rentverse/role/lanlord/presentation/cubit/dashboard/landlord_dashboard_cubit.dart';
 import 'package:rentverse/role/lanlord/presentation/cubit/dashboard/landlord_dashboard_state.dart';
+import 'package:rentverse/features/notification/presentation/pages/notification_page.dart';
 
 class LandlordDashboardPage extends StatefulWidget {
   const LandlordDashboardPage({super.key});
@@ -55,6 +56,11 @@ class _LandlordDashboardView extends StatelessWidget {
             appBar: CustomAppBar(
               displayName: state.user?.name ?? 'Landlord',
               backgroundColor: Colors.white,
+              onNotificationTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const NotificationPage()),
+                );
+              },
             ),
             backgroundColor: Colors.grey.shade100,
             body: NotificationListener<ReloadDataNotification>(
